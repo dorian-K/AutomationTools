@@ -1,0 +1,3 @@
+[submodule "MobileAlarmToHomeAssistant"]
+	path = MobileAlarmToHomeAssistant
+	url = https://github.com/dorian-K/MobileAlarmToHomeAssistant.git

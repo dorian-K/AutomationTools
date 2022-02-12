@@ -26,7 +26,7 @@ You now have everything you need to use this script!
 If you don't want to specify the cookie token everytime you use this script, you can also hardcode it in the beginning of the script
 
 Use cases
-=========
+---------
 
 Switch to a device named "Bedroom":
 

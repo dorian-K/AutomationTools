@@ -158,26 +158,28 @@ async def runPlayPlaylistOn(args):
         myDev = registerDevice(accessToken, connectionId)
         devs = listAllDevices(accessToken, connectionId)
         active = devs["active_device_id"]
+        targetDeviceId = active
         print("Active device:", active)
 
-        allDevices = devs["devices"]
-        targetDeviceActivated = False
-        targetDeviceId = ""
-        for dev in allDevices.keys():
-            d = allDevices[dev]
-            if d["name"] == args.device:
-                if dev == active:
-                    print("Target device is already active!")
+        if "device" in args and args.device != None:
+            allDevices = devs["devices"]
+            targetDeviceActivated = False
+            
+            for dev in allDevices.keys():
+                d = allDevices[dev]
+                if d["name"] == args.device:
+                    if dev == active:
+                        print("Target device is already active!")
+                        targetDeviceActivated = True
+                        targetDeviceId = dev
+                        break
+                    transferDevice(accessToken, active, dev)
                     targetDeviceActivated = True
                     targetDeviceId = dev
-                    break
-                transferDevice(accessToken, active, dev)
-                targetDeviceActivated = True
-                targetDeviceId = dev
-                
-        if targetDeviceActivated == False:
-            print("Target device not found!!!")
-            return
+                    
+            if targetDeviceActivated == False:
+                print("Target device not found!!!")
+                return
         
         cmd = {
             "command": {
@@ -240,10 +242,6 @@ def makeRunner(func):
 def run():
     global sp_dc
 
-    if exists("sp_dc.password"):
-        file = open("sp_dc.password", "r")
-        sp_dc = file.read()
-
     parser = argparse.ArgumentParser(description="cli interface for the spotify api")
     parser.add_argument('--sp_dc', help="Supply the sp_dc cookie here", nargs='?', default=sp_dc, required=(len(sp_dc) < 30))
 
@@ -259,6 +257,10 @@ def run():
 
     args = parser.parse_args()
     args.func(args)
+
+if exists("sp_dc.password"):
+    file = open("sp_dc.password", "r")
+    sp_dc = file.read()
 
 if __name__ == "__main__":
     run()

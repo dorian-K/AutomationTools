@@ -157,6 +157,9 @@ async def listAllDevices(accessToken, connectionId):
 
 
 async def runPlayPlaylistOn(args):
+    global sp_dc
+    if "sp_dc" in args:
+        sp_dc = args.sp_dc
     print("Retrieving token...")
     tok = await grabAccessToken(sp_dc)
 
@@ -208,6 +211,9 @@ async def runPlayPlaylistOn(args):
 
 
 async def runSwitch(args):
+    global sp_dc
+    if "sp_dc" in args:
+        sp_dc = args.sp_dc
     print("Retrieving token...")
     tok = await grabAccessToken(sp_dc)
 
@@ -248,6 +254,10 @@ def makeRunner(func):
 def run():
     global sp_dc
 
+    if exists("sp_dc.password"):
+        file = open("sp_dc.password", "r")
+        sp_dc = file.read()
+
     parser = argparse.ArgumentParser(description="cli interface for the spotify api")
     parser.add_argument('--sp_dc', help="Supply the sp_dc cookie here", nargs='?', default=sp_dc, required=(len(sp_dc) < 30))
 
@@ -264,9 +274,7 @@ def run():
     args = parser.parse_args()
     args.func(args)
 
-if exists("sp_dc.password"):
-    file = open("sp_dc.password", "r")
-    sp_dc = file.read()
+
 
 if __name__ == "__main__":
     run()

@@ -1,7 +1,7 @@
-Spotify Switcher
-================
+Spotify CLI
+===========
 
-This script automates switching between devices in Spotify via Spotify Connect. May break in the future as this relies heavily on undocumented apis.
+This script automates Spotify via the command line. May break in the future as this relies heavily on undocumented apis.
 
 Getting Started
 ---------------
@@ -10,11 +10,9 @@ Prerequisites: Python 3
 
 Install the requirements: `pip install -r requirements.txt`
 
-Usage: `python.exe spotify_switcher.py <device name> [sp_dc cookie]`
+Usage: `python.exe spotify_cli.py -h`
 
-`Device name`: Friendly device name as shown in the Spotify device chooser
-
-`sp_dc cookie`: sp_dc cookie from a logged in session of your spotify user account
+To use spotify_cli, you need to acquire your sp_dc token, which you can supply via the `--sp_dc` argument, hardcode in the script or inside a file named `sp_dc.password`
 
 Acquiring sp_dc
 ---------------

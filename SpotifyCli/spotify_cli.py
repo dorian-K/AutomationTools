@@ -1,5 +1,5 @@
 from genericpath import exists
-from requests import post, get, put
+import aiohttp
 import asyncio
 import json
 from websockets import connect
@@ -19,27 +19,31 @@ dealer = "gew1-dealer.spotify.com"
 spclient = "gew1-spclient.spotify.com"
 ###########################
 
-def grabAccessToken(sp_dc): 
-    endpoint = "https://open.spotify.com/"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+
+async def grabAccessToken(sp_dc): 
+    endpoint = "http://open.spotify.com/"
     cookies = {
         "sp_dc": sp_dc
     }
-    r = get(endpoint, cookies=cookies)
+    async with aiohttp.ClientSession(cookies=cookies, headers={'User-Agent': user_agent}) as session:
+        async with session.get(endpoint) as r:
+            rtext = await r.text()
+            # TODO: parse via html & json parsers instead of searching for a needle in a haystack
+            start = rtext.find('"accessToken":"')
+            if start == -1:
+                print(rtext)
+                raise ValueError("no access token")
 
-    # TODO: parse via html & json parsers instead of searching for a needle in a haystack
-    start = r.text.find('"accessToken":"')
-    if start == -1:
-        raise ValueError("no access token")
+            acc = rtext[start+15:]
+            end = acc.find('","accessTokenExpirationTimestampM')
 
-    acc = r.text[start+15:]
-    end = acc.find('","accessTokenExpirationTimestampM')
+            if end == -1:
+                raise ValueError("no access token")
+            acc = acc[:end]
 
-    if end == -1:
-        raise ValueError("no access token")
-    acc = acc[:end]
-
-    print("access token acquired")
-    return acc
+            print("access token acquired")
+            return acc
 
 async def withConnectionId(accessToken, callback):
     # connect to the websocket via the access token and wait for the connection id
@@ -50,16 +54,17 @@ async def withConnectionId(accessToken, callback):
 
         conId = parsed['headers']['Spotify-Connection-Id']
         print("connection id acquired")
-        callback(accessToken, conId)
+        await callback(accessToken, conId)
 
         return conId
     raise ValueError("no connection id")
 
-def transferDevice(accessToken, fromD, to):
+async def transferDevice(accessToken, fromD, to):
+    endpoint = "https://"+spclient+"/connect-state/v1/connect/transfer/from/"+fromD+"/to/"+to
     headers = {
         "Authorization": "Bearer "+accessToken,
         "content-type": "application/json",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
+        "User-Agent": user_agent,
     }
     obj = {
         "transfer_options": {
@@ -67,26 +72,28 @@ def transferDevice(accessToken, fromD, to):
         }
     }
     payload = json.dumps(obj)
-    x = post("https://"+spclient+"/connect-state/v1/connect/transfer/from/"+fromD+"/to/"+to, payload, headers=headers)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(endpoint, data=payload, headers=headers) as r:
+            print(r.status)
 
-    print(x.status_code)
-
-def sendPlayerCommand(accessToken, fromD, toD, command):
+async def sendPlayerCommand(accessToken, fromD, toD, command):
+    endpoint = "https://"+spclient+"/connect-state/v1/player/command/from/"+fromD+"/to/"+toD
     headers = {
         "Authorization": "Bearer "+accessToken,
         "content-type": "application/json",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
+        "User-Agent": user_agent,
     }
     payload = json.dumps(command)
-    x = post("https://"+spclient+"/connect-state/v1/player/command/from/"+fromD+"/to/"+toD, payload, headers=headers)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(endpoint, data=payload, headers=headers) as r:
+            print(r.status)
 
-    print(x.status_code)
-
-def registerDevice(accessToken, connectionId):
+async def registerDevice(accessToken, connectionId):
+    endpoint = "https://"+spclient+"/track-playback/v1/devices"
     headers = {
         "Authorization": "Bearer "+accessToken,
         "content-type": "application/json",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36",
+        "User-Agent": user_agent,
     }
     obj = {
         "client_version": "harmony:4.22.0-57290db",
@@ -115,17 +122,19 @@ def registerDevice(accessToken, connectionId):
         }
     }
     payload = json.dumps(obj)
-    x = post("https://"+spclient+"/track-playback/v1/devices", payload, headers=headers)
-
-    print(x.status_code)#
+    async with aiohttp.ClientSession() as session:
+        async with session.post(endpoint, data=payload, headers=headers) as r:
+            print(r.status)
 
     return myDeviceId
 
-def listAllDevices(accessToken, connectionId):
+async def listAllDevices(accessToken, connectionId):
+    endpoint = "https://"+spclient+"/connect-state/v1/devices/hobs_"+myDeviceId
     headers = {
         "Authorization": "Bearer "+accessToken,
         "content-type": "application/json",
-        "x-spotify-connection-id": connectionId
+        "x-spotify-connection-id": connectionId,
+        "User-Agent": user_agent,
     }
     obj = {
         "member_type": "CONNECT_STATE",
@@ -139,21 +148,21 @@ def listAllDevices(accessToken, connectionId):
         }
     }
     payload = json.dumps(obj)
-    x = put("https://"+spclient+"/connect-state/v1/devices/hobs_"+myDeviceId, payload, headers=headers)
-    
-    print(x.status_code)
-    re = json.loads(x.text)
+    async with aiohttp.ClientSession() as session:
+        async with session.put(endpoint, data=payload, headers=headers) as r:
+            print(r.status)
+            re = json.loads(await r.text())
 
-    return re
+            return re
 
 
 async def runPlayPlaylistOn(args):
     print("Retrieving token...")
-    tok = grabAccessToken(sp_dc)
+    tok = await grabAccessToken(sp_dc)
 
-    def withConn(accessToken, connectionId):
-        myDev = registerDevice(accessToken, connectionId)
-        devs = listAllDevices(accessToken, connectionId)
+    async def withConn(accessToken, connectionId):
+        myDev = await registerDevice(accessToken, connectionId)
+        devs = await listAllDevices(accessToken, connectionId)
         active = devs["active_device_id"]
         targetDeviceId = active
         print("Active device:", active)
@@ -170,7 +179,7 @@ async def runPlayPlaylistOn(args):
                         targetDeviceActivated = True
                         targetDeviceId = dev
                         break
-                    transferDevice(accessToken, active, dev)
+                    await transferDevice(accessToken, active, dev)
                     targetDeviceActivated = True
                     targetDeviceId = dev
                     
@@ -193,18 +202,18 @@ async def runPlayPlaylistOn(args):
                 }
             }
         }
-        sendPlayerCommand(accessToken, myDev, targetDeviceId, cmd)
+        await sendPlayerCommand(accessToken, myDev, targetDeviceId, cmd)
 
     await withConnectionId(tok, withConn)
 
 
 async def runSwitch(args):
     print("Retrieving token...")
-    tok = grabAccessToken(sp_dc)
+    tok = await grabAccessToken(sp_dc)
 
-    def withConn(accessToken, connectionId):
-        registerDevice(accessToken, connectionId)
-        devs = listAllDevices(accessToken, connectionId)
+    async def withConn(accessToken, connectionId):
+        await registerDevice(accessToken, connectionId)
+        devs = await listAllDevices(accessToken, connectionId)
         active = devs["active_device_id"]
         print("Active device:", active)
 
@@ -222,7 +231,7 @@ async def runSwitch(args):
                     print("Target device is already active!")
                     targetDeviceActivated = True
                     continue
-                transferDevice(accessToken, active, dev)
+                await transferDevice(accessToken, active, dev)
                 targetDeviceActivated = True
                 
         if targetDeviceActivated == False:

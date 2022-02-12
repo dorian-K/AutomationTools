@@ -1,7 +1,4 @@
 from genericpath import exists
-from msilib.schema import Error
-import sys
-from tkinter import E
 from requests import post, get, put
 import asyncio
 import json

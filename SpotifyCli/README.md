@@ -25,5 +25,15 @@ You now have everything you need to use this script!
 
 If you don't want to specify the cookie token everytime you use this script, you can also hardcode it in the beginning of the script
 
+Use cases
+=========
+
+Switch to a device named "Bedroom":
+
+`python.exe spotify_cli.py switch Bedroom`
+
+Play the track [Mr. Roboto](https://open.spotify.com/track/7C0rG4oWO7VeZcffyW1sK9) on the device "Kitchen":
+
+`python.exe spotify_cli.py playPlaylistOn Kitchen spotify:track:7C0rG4oWO7VeZcffyW1sK9`
 
 Not affiliated with Spotify 

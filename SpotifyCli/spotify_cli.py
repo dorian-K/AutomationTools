@@ -158,8 +158,7 @@ async def listAllDevices(accessToken, connectionId):
 
 async def runPlayPlaylistOn(args):
     global sp_dc
-    if "sp_dc" in args:
-        sp_dc = args.sp_dc
+    sp_dc = args.sp_dc
     print("Retrieving token...")
     tok = await grabAccessToken(sp_dc)
 
@@ -170,7 +169,7 @@ async def runPlayPlaylistOn(args):
         targetDeviceId = active
         print("Active device:", active)
 
-        if "device" in args and args.device != None:
+        if args.device != None:
             allDevices = devs["devices"]
             targetDeviceActivated = False
             
@@ -212,8 +211,7 @@ async def runPlayPlaylistOn(args):
 
 async def runSwitch(args):
     global sp_dc
-    if "sp_dc" in args:
-        sp_dc = args.sp_dc
+    sp_dc = args.sp_dc
     print("Retrieving token...")
     tok = await grabAccessToken(sp_dc)
 

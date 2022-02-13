@@ -166,9 +166,11 @@ async def runPlayPlaylistOn(args):
     async def withConn(accessToken, connectionId):
         myDev = await registerDevice(accessToken, connectionId)
         devs = await listAllDevices(accessToken, connectionId)
-        active = devs["active_device_id"]
+        active = ""
         targetDeviceId = active
-        print("Active device:", active)
+        if "active_device_id" in devs:
+            active = devs["active_device_id"]
+            print("Active device:", active)
 
         if args.device != None:
             allDevices = devs["devices"]

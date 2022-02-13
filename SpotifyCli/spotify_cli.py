@@ -29,9 +29,7 @@ async def grabAccessToken(sp_dc):
     }
     async with aiohttp.ClientSession(cookies=cookies, headers={'User-Agent': user_agent}) as session:
         async with session.get(endpoint) as r:
-            rtext = r.text()
-            if inspect.isawaitable(rtext):
-                rtext = await rtext
+            rtext = await r.text()
             # TODO: parse via html & json parsers instead of searching for a needle in a haystack
             start = rtext.find('"accessToken":"')
             if start == -1:
@@ -154,10 +152,7 @@ async def listAllDevices(accessToken, connectionId):
     async with aiohttp.ClientSession() as session:
         async with session.put(endpoint, data=payload, headers=headers) as r:
             print(r.status)
-            txt = r.text()
-            if inspect.isawaitable(txt):
-                txt = await txt
-            re = json.loads(txt)
+            re = json.loads(await r.text())
 
             return re
 
@@ -277,8 +272,6 @@ def run():
 
     args = parser.parse_args()
     args.func(args)
-
-
 
 if __name__ == "__main__":
     run()
